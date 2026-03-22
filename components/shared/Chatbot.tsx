@@ -19,13 +19,12 @@ export default function Chatbot() {
     { role: "bot", content: "Hello! I'm your AI Newborn Health Assistant. How can I help you today?" }
   ]);
   const [loading, setLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("BabyBloom is thinking...");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // 1. Pre-warm the API on page load to minimize cold-start latency
+  // Pre-warm the API on page load
   useEffect(() => {
-    fetch(RENDER_API_ROOT)
-      .then(() => console.log("AI Engine pre-warmed"))
-      .catch(() => {}); // Silent ping
+    fetch(RENDER_API_ROOT).catch(() => {});
   }, []);
 
   const scrollToBottom = () => {
@@ -36,9 +35,13 @@ export default function Chatbot() {
     scrollToBottom();
   }, [messages]);
 
-  // 2. Fetch with Auto-Retry Logic
-  const fetchWithRetry = async (question: string, chatHistory: any[], attempts = 3): Promise<any> => {
-    for (let i = 0; i < attempts; i++) {
+  // Optimized Polling Logic
+  const fetchWithRetry = async (question: string, chatHistory: any[], maxTimeSeconds = 60): Promise<any> => {
+    const startTime = Date.now();
+    let attempts = 0;
+
+    while (Date.now() - startTime < maxTimeSeconds * 1000) {
+      attempts++;
       try {
         const res = await fetch(RENDER_API_URL, {
           method: "POST",
@@ -49,25 +52,23 @@ export default function Chatbot() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         
         const data = await res.json();
-
-        // If Render is still waking up, wait 12s and retry
         const answer = data?.answer?.toLowerCase() || "";
-        if ((answer.includes("waking up") || answer.includes("warming")) && i < attempts - 1) {
-          console.log(`Retry attempt ${i + 1} - Engine still warming up...`);
-          await new Promise(r => setTimeout(r, 12000));
+        
+        // If engine is still waking up, wait 3 seconds and poll again
+        if (answer.includes("waking up") || answer.includes("warming")) {
+          setStatusMessage(attempts > 5 ? "Almost there! Waking up the engine..." : "BabyBloom is waking up...");
+          await new Promise(r => setTimeout(r, 3000)); // Poll every 3 seconds
           continue;
         }
         
         return data;
       } catch (err) {
-        if (i < attempts - 1) {
-          console.log(`Retry attempt ${i + 1} after error:`, err);
-          await new Promise(r => setTimeout(r, 12000));
-          continue;
-        }
-        throw err;
+        // On network error (e.g. timeout), wait 4 seconds and try again
+        setStatusMessage("Connecting to AI service...");
+        await new Promise(r => setTimeout(r, 4000));
       }
     }
+    throw new Error("Timeout waiting for AI response");
   };
 
   const handleSendMessage = async () => {
@@ -77,6 +78,7 @@ export default function Chatbot() {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
+    setStatusMessage("BabyBloom is thinking...");
 
     try {
       const chatHistory = messages.map(m => ({
@@ -95,7 +97,7 @@ export default function Chatbot() {
       console.error("Chatbot Error:", error);
       setMessages((prev) => [...prev, { 
         role: "bot", 
-        content: "I'm having some trouble connecting to my brain. The connection timed out—please try asking again in a moment! 🧠✨" 
+        content: "I'm having some trouble connecting. The AI engine might be taking a long nap! Please try again in a minute. 🧠✨" 
       }]);
     } finally {
       setLoading(false);
@@ -171,8 +173,8 @@ export default function Chatbot() {
               ))}
               {loading && (
                 <div className="flex justify-start">
-                  <div className="flex gap-2 items-center text-rose-400 text-xs italic">
-                    <Loader2 className="w-4 h-4 animate-spin" /> BabyBloom is thinking...
+                  <div className="flex gap-2 items-center text-rose-400 text-[10px] italic">
+                    <Loader2 className="w-3 h-3 animate-spin" /> {statusMessage}
                   </div>
                 </div>
               )}
