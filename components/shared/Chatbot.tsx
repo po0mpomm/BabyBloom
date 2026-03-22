@@ -9,6 +9,9 @@ interface Message {
   content: string;
 }
 
+const RENDER_API_URL = "https://baby-bloom-api-onbj.onrender.com/ask";
+const RENDER_API_ROOT = "https://baby-bloom-api-onbj.onrender.com/";
+
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -18,6 +21,13 @@ export default function Chatbot() {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // 1. Pre-warm the API on page load to minimize cold-start latency
+  useEffect(() => {
+    fetch(RENDER_API_ROOT)
+      .then(() => console.log("AI Engine pre-warmed"))
+      .catch(() => {}); // Silent ping
+  }, []);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -25,6 +35,40 @@ export default function Chatbot() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // 2. Fetch with Auto-Retry Logic
+  const fetchWithRetry = async (question: string, chatHistory: any[], attempts = 3): Promise<any> => {
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const res = await fetch(RENDER_API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question, chat_history: chatHistory }),
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        
+        const data = await res.json();
+
+        // If Render is still waking up, wait 12s and retry
+        const answer = data?.answer?.toLowerCase() || "";
+        if ((answer.includes("waking up") || answer.includes("warming")) && i < attempts - 1) {
+          console.log(`Retry attempt ${i + 1} - Engine still warming up...`);
+          await new Promise(r => setTimeout(r, 12000));
+          continue;
+        }
+        
+        return data;
+      } catch (err) {
+        if (i < attempts - 1) {
+          console.log(`Retry attempt ${i + 1} after error:`, err);
+          await new Promise(r => setTimeout(r, 12000));
+          continue;
+        }
+        throw err;
+      }
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -35,24 +79,12 @@ export default function Chatbot() {
     setLoading(true);
 
     try {
-      // Use native fetch to avoid some Axios "Network Error" issues
-      const response = await fetch("/api/chatbot/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: input,
-          chat_history: messages.map(m => ({
-            role: m.role === "user" ? "user" : "assistant",
-            content: m.content
-          }))
-        }),
-      });
+      const chatHistory = messages.map(m => ({
+        role: m.role === "user" ? "user" : "assistant",
+        content: m.content
+      }));
 
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await fetchWithRetry(input, chatHistory);
       
       const botMsg: Message = { 
         role: "bot", 
@@ -63,7 +95,7 @@ export default function Chatbot() {
       console.error("Chatbot Error:", error);
       setMessages((prev) => [...prev, { 
         role: "bot", 
-        content: "I'm having a bit of trouble connecting to my brain right now. It might be waking up—please try asking again in about 30 seconds! 🧠✨" 
+        content: "I'm having some trouble connecting to my brain. The connection timed out—please try asking again in a moment! 🧠✨" 
       }]);
     } finally {
       setLoading(false);
