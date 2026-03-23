@@ -71,7 +71,7 @@ export default function Chatbot() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[2147483647] pointer-events-auto">
+    <div className="fixed bottom-6 right-6 z-[2147483647] pointer-events-auto chatbot-container">
       <AnimatePresence>
         {!isOpen && (
           <motion.button

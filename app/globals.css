@@ -145,6 +145,20 @@
   }
 }
 
+/* ── Chatbot Native Cursor Override ──────────── */
+/* Re-enable native cursors inside the chatbot widget since it sits above the custom cursor's z-index */
+@media (pointer: fine) {
+  .chatbot-container, .chatbot-container * {
+    cursor: auto !important;
+  }
+  .chatbot-container a, .chatbot-container button, .chatbot-container [role="button"], .chatbot-container .cursor-pointer {
+    cursor: pointer !important;
+  }
+  .chatbot-container input, .chatbot-container textarea {
+    cursor: text !important;
+  }
+}
+
 /* ── Noise overlay (Apple.com organic grain) ─────────── */
 .noise-overlay::after {
   content: '';
