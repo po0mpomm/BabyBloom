@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 const SYSTEM_PROMPT = `
 You are BabyBloom AI, an expert neonatal and maternal health assistant. 
@@ -19,69 +16,74 @@ Your goal is to provide accurate, reliable, and compassionate advice to parents 
 
 ### DISCLAIMER:
 Always remind users that you are an AI assistant and not a medical doctor.
-
-Return a JSON response with "answer".
 `;
 
 export async function POST(req: NextRequest) {
   try {
     const { question, chat_history } = await req.json();
+    const apiKey = process.env.GEMINI_API_KEY;
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!apiKey) {
       return NextResponse.json({
-        answer: "GEMINI_API_KEY is missing. Please restart your server! 🚀",
+        answer: "GEMINI_API_KEY is missing. Please **RESTART YOUR SERVER** (npm run dev) to load the new environment variables! 🚀",
         error: "API_KEY_MISSING"
       });
     }
 
-    // Try multiple model names in case of account restrictions
-    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro", "gemini-pro"];
-    let model;
-    let success = false;
-    let lastError = "";
+    // Direct Fetch to the stable v1 endpoint (more robust than SDK v1beta)
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-    for (const modelName of modelsToTry) {
-      try {
-        model = genAI.getGenerativeModel({ model: modelName });
-        
-        const contents = [
-          { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
-          { role: "model", parts: [{ text: "Understood. I am BabyBloom AI." }] },
-        ];
+    const contents = [
+      { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
+      { role: "model", parts: [{ text: "Understood. I am BabyBloom AI." }] },
+    ];
 
-        if (chat_history) {
-          chat_history.forEach((msg: any) => {
-            contents.push({
-              role: msg.role === "user" ? "user" : "model",
-              parts: [{ text: msg.content }]
-            });
-          });
-        }
-
-        contents.push({ role: "user", parts: [{ text: question }] });
-
-        const result = await model.generateContent({ contents });
-        const response = await result.response;
-        const text = response.text();
-
-        return NextResponse.json({ answer: text, modelUsed: modelName });
-      } catch (err: any) {
-        lastError = err.message;
-        console.warn(`Model ${modelName} failed: ${err.message}`);
-        continue; // Try next model
-      }
+    if (chat_history) {
+      chat_history.forEach((msg: any) => {
+        contents.push({
+          role: msg.role === "user" ? "user" : "model",
+          parts: [{ text: msg.content }]
+        });
+      });
     }
 
-    // If all models failed
+    contents.push({ role: "user", parts: [{ text: question }] });
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      // If Flash fails, try Pro as a fallback on the stable v1 endpoint
+      const proUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`;
+      const proRes = await fetch(proUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents }),
+      });
+      
+      const proData = await proRes.json();
+      if (!proRes.ok) {
+        throw new Error(proData.error?.message || data.error?.message || "Gemini API rejected the key");
+      }
+      
+      return NextResponse.json({
+        answer: proData.candidates[0].content.parts[0].text
+      });
+    }
+
     return NextResponse.json({
-      answer: `All Gemini models failed. Last error: ${lastError}. Please ensure your API Key has access to the Gemini API in Google AI Studio. ✨`,
-      error: "ALL_MODELS_FAILED"
+      answer: data.candidates[0].content.parts[0].text
     });
 
   } catch (error: any) {
-    console.error("Gemini API Error:", error.message);
+    console.error("Gemini Direct Error:", error.message);
     return NextResponse.json({
-      answer: `Connection Issue: ${error.message} 🧠✨`,
+      answer: `Gemini Error: ${error.message}. Please ensure the "Generative Language API" is enabled for your API key in the Google Cloud Console or use a key from Google AI Studio. 🧠✨`,
       error: error.message
     });
   }
