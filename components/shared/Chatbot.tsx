@@ -13,7 +13,7 @@ export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([
-    { role: "bot", content: "Hello! I'm your AI Newborn Health Assistant. How can I help you today?" }
+    { role: "bot", content: "Hello! I'm Baby Blooms, your warm and knowledgeable AI assistant specializing in newborn healthcare. How can I support you and your little one today?" }
   ]);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -105,7 +105,7 @@ export default function Chatbot() {
                   <Sparkles className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm" style={{ fontFamily: "var(--font-display)" }}>BabyBloom AI</h3>
+                  <h3 className="font-bold text-sm" style={{ fontFamily: "var(--font-display)" }}>Baby Blooms AI</h3>
                   <p className="text-[10px] opacity-80 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> Online Assistant
                   </p>
@@ -155,7 +155,7 @@ export default function Chatbot() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                  placeholder="Ask about newborn health..."
+                  placeholder="Ask Baby Blooms about newborn health..."
                   className="w-full px-4 py-3 rounded-xl bg-[#FDF7F8] border border-pink-100 focus:outline-none focus:ring-2 focus:ring-rose-200 transition-all text-sm"
                 />
                 <motion.button
