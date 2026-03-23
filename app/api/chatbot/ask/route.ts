@@ -27,41 +27,61 @@ export async function POST(req: NextRequest) {
   try {
     const { question, chat_history } = await req.json();
 
-    // Specific check for API key
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({
-        answer: "GEMINI_API_KEY is not loaded yet. Please **RESTART YOUR SERVER** (npm run dev) to load the new environment variables! 🚀",
+        answer: "GEMINI_API_KEY is missing. Please restart your server! 🚀",
         error: "API_KEY_MISSING"
       });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Try multiple model names in case of account restrictions
+    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro", "gemini-pro"];
+    let model;
+    let success = false;
+    let lastError = "";
 
-    const contents = [
-      { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
-      { role: "model", parts: [{ text: "Understood. I am BabyBloom AI." }] },
-    ];
+    for (const modelName of modelsToTry) {
+      try {
+        model = genAI.getGenerativeModel({ model: modelName });
+        
+        const contents = [
+          { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
+          { role: "model", parts: [{ text: "Understood. I am BabyBloom AI." }] },
+        ];
 
-    if (chat_history) {
-      chat_history.forEach((msg: any) => {
-        contents.push({
-          role: msg.role === "user" ? "user" : "model",
-          parts: [{ text: msg.content }]
-        });
-      });
+        if (chat_history) {
+          chat_history.forEach((msg: any) => {
+            contents.push({
+              role: msg.role === "user" ? "user" : "model",
+              parts: [{ text: msg.content }]
+            });
+          });
+        }
+
+        contents.push({ role: "user", parts: [{ text: question }] });
+
+        const result = await model.generateContent({ contents });
+        const response = await result.response;
+        const text = response.text();
+
+        return NextResponse.json({ answer: text, modelUsed: modelName });
+      } catch (err: any) {
+        lastError = err.message;
+        console.warn(`Model ${modelName} failed: ${err.message}`);
+        continue; // Try next model
+      }
     }
 
-    contents.push({ role: "user", parts: [{ text: question }] });
-
-    const result = await model.generateContent({ contents });
-    const response = await result.response;
-    const text = response.text();
-
-    return NextResponse.json({ answer: text });
-  } catch (error: any) {
-    console.error("Gemini Error:", error.message);
+    // If all models failed
     return NextResponse.json({
-      answer: "I'm having a brief connection issue. Please try again in a few seconds! 🧠✨",
+      answer: `All Gemini models failed. Last error: ${lastError}. Please ensure your API Key has access to the Gemini API in Google AI Studio. ✨`,
+      error: "ALL_MODELS_FAILED"
+    });
+
+  } catch (error: any) {
+    console.error("Gemini API Error:", error.message);
+    return NextResponse.json({
+      answer: `Connection Issue: ${error.message} 🧠✨`,
       error: error.message
     });
   }
