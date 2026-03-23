@@ -9,9 +9,6 @@ interface Message {
   content: string;
 }
 
-const RENDER_API_URL = "https://baby-bloom-api-onbj.onrender.com/ask";
-const RENDER_API_ROOT = "https://baby-bloom-api-onbj.onrender.com/";
-
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -19,13 +16,7 @@ export default function Chatbot() {
     { role: "bot", content: "Hello! I'm your AI Newborn Health Assistant. How can I help you today?" }
   ]);
   const [loading, setLoading] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("BabyBloom is thinking...");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Pre-warm the API on page load
-  useEffect(() => {
-    fetch(RENDER_API_ROOT).catch(() => {});
-  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -35,42 +26,6 @@ export default function Chatbot() {
     scrollToBottom();
   }, [messages]);
 
-  // Optimized Polling Logic
-  const fetchWithRetry = async (question: string, chatHistory: any[], maxTimeSeconds = 60): Promise<any> => {
-    const startTime = Date.now();
-    let attempts = 0;
-
-    while (Date.now() - startTime < maxTimeSeconds * 1000) {
-      attempts++;
-      try {
-        const res = await fetch(RENDER_API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question, chat_history: chatHistory }),
-        });
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        
-        const data = await res.json();
-        const answer = data?.answer?.toLowerCase() || "";
-        
-        // If engine is still waking up, wait 3 seconds and poll again
-        if (answer.includes("waking up") || answer.includes("warming")) {
-          setStatusMessage(attempts > 5 ? "Almost there! Waking up the engine..." : "BabyBloom is waking up...");
-          await new Promise(r => setTimeout(r, 3000)); // Poll every 3 seconds
-          continue;
-        }
-        
-        return data;
-      } catch (err) {
-        // On network error (e.g. timeout), wait 4 seconds and try again
-        setStatusMessage("Connecting to AI service...");
-        await new Promise(r => setTimeout(r, 4000));
-      }
-    }
-    throw new Error("Timeout waiting for AI response");
-  };
-
   const handleSendMessage = async () => {
     if (!input.trim() || loading) return;
 
@@ -78,15 +33,26 @@ export default function Chatbot() {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
-    setStatusMessage("BabyBloom is thinking...");
 
     try {
-      const chatHistory = messages.map(m => ({
-        role: m.role === "user" ? "user" : "assistant",
-        content: m.content
-      }));
+      // Use our new local Gemini serverless API
+      const response = await fetch("/api/chatbot/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: input,
+          chat_history: messages.map(m => ({
+            role: m.role === "user" ? "user" : "assistant",
+            content: m.content
+          }))
+        }),
+      });
 
-      const data = await fetchWithRetry(input, chatHistory);
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+
+      const data = await response.json();
       
       const botMsg: Message = { 
         role: "bot", 
@@ -97,7 +63,7 @@ export default function Chatbot() {
       console.error("Chatbot Error:", error);
       setMessages((prev) => [...prev, { 
         role: "bot", 
-        content: "I'm having some trouble connecting. The AI engine might be taking a long nap! Please try again in a minute. 🧠✨" 
+        content: "I'm having a brief connection issue. Please try again in a few seconds! 🧠✨" 
       }]);
     } finally {
       setLoading(false);
@@ -173,8 +139,8 @@ export default function Chatbot() {
               ))}
               {loading && (
                 <div className="flex justify-start">
-                  <div className="flex gap-2 items-center text-rose-400 text-[10px] italic">
-                    <Loader2 className="w-3 h-3 animate-spin" /> {statusMessage}
+                  <div className="flex gap-2 items-center text-rose-400 text-xs italic">
+                    <Loader2 className="w-4 h-4 animate-spin" /> BabyBloom is thinking...
                   </div>
                 </div>
               )}
