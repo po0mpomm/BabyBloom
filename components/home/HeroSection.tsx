@@ -8,7 +8,7 @@ import MagneticButton from "@/components/shared/MagneticButton";
 
 const badges = [
   { icon: Shield, text: "256+ Vaccines Tracked", color: "text-rose-600 bg-rose-50 border-rose-100" },
-  { icon: Sparkles, text: "AI Health Predictor", color: "text-pink-600 bg-pink-50 border-pink-100" },
+  { icon: Sparkles, text: "ML Health Predictor", color: "text-pink-600 bg-pink-50 border-pink-100" },
   { icon: Star, text: "10,000+ Families", color: "text-fuchsia-600 bg-fuchsia-50 border-fuchsia-100" },
 ];
 
@@ -184,7 +184,7 @@ export default function HeroSection() {
               }}
             >
               <Activity className="w-5 h-5" />
-              Try AI Predictor
+              Try ML Predictor
             </Link>
           </motion.div>
         </motion.div>

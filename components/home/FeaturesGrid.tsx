@@ -37,7 +37,7 @@ const features = [
   },
   {
     icon: Brain,
-    title: "AI Health Predictor",
+    title: "ML Health Predictor",
     description: "Our ML engine analyzes growth patterns to predict health risks and deliver personalized recommendations.",
     gradient: "from-rose-600 to-fuchsia-500",
     softBg: "from-rose-50 to-fuchsia-50",

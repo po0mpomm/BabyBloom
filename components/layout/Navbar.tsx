@@ -18,7 +18,7 @@ export default function Navbar() {
   const navLinks = [
     { label: "Features", href: "/#features" },
     { label: "About", href: "/#about" },
-    { label: "AI Predictor", href: "/ml-predictor" },
+    { label: "ML Predictor", href: "/ml-predictor" },
   ];
 
   return (
