@@ -25,57 +25,77 @@ export async function POST(req: NextRequest) {
 
     if (!apiKey) {
       return NextResponse.json({
-        answer: "GROQ_API_KEY is missing. Please **RESTART YOUR SERVER** (npm run dev)! 🚀",
+        answer: "GROQ_API_KEY is missing. Please restart your server! 🚀",
         error: "API_KEY_MISSING"
       });
     }
 
-    // Using Groq's LPU-accelerated Llama model for near-instant response
     const url = "https://api.groq.com/openai/v1/chat/completions";
 
-    const messages = [
+    const baseMessages = [
       { role: "system", content: SYSTEM_PROMPT },
     ];
 
     if (chat_history) {
       chat_history.forEach((msg: any) => {
-        messages.push({
+        baseMessages.push({
           role: msg.role === "user" ? "user" : "assistant",
           content: msg.content
         });
       });
     }
 
-    messages.push({ role: "user", content: question });
+    baseMessages.push({ role: "user", content: question });
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-70b-versatile", // Powerful and incredibly fast
-        messages,
-        temperature: 0.7,
-        max_tokens: 1024,
-      }),
-    });
+    // Try current flagship models, then reliable fallbacks
+    const modelsToTry = [
+      "llama-3.3-70b-versatile", // Latest flagship
+      "llama-3.1-70b-versatile", // Re-checking in case it was a transient error or alias
+      "llama3-70b-8192",         // Super stable legacy
+      "llama-3.1-8b-instant"     // Always available fallback
+    ];
 
-    const data = await response.json();
+    let lastError = "";
 
-    if (!response.ok) {
-      throw new Error(data.error?.message || "Groq API Error");
+    for (const modelId of modelsToTry) {
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: modelId,
+            messages: baseMessages,
+            temperature: 0.7,
+            max_tokens: 1024,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.choices?.[0]?.message?.content) {
+          return NextResponse.json({
+            answer: data.choices[0].message.content,
+            modelUsed: modelId
+          });
+        } else {
+          lastError = data.error?.message || "Unknown Error";
+          console.warn(`Model ${modelId} failed: ${lastError}`);
+        }
+      } catch (e: any) {
+        lastError = e.message;
+        continue;
+      }
     }
 
-    return NextResponse.json({
-      answer: data.choices[0].message.content
-    });
+    throw new Error(`All Groq models failed. Last error: ${lastError}`);
 
   } catch (error: any) {
-    console.error("Groq API Error:", error.message);
+    console.error("Groq Final Error:", error.message);
     return NextResponse.json({
-      answer: `Groq Error: ${error.message}. Please ensure your Groq API key is correct! 🚀✨`,
+      answer: `Chatbot Error: ${error.message}. Please check your Groq API console. 🚀✨`,
       error: error.message
     });
   }
