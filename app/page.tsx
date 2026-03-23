@@ -4,7 +4,6 @@ import HeroSection from "@/components/home/HeroSection";
 import StatsSection from "@/components/home/StatsSection";
 import FeaturesGrid from "@/components/home/FeaturesGrid";
 import MaternalSection from "@/components/home/MaternalSection";
-import ChatbotWidget from "@/components/home/ChatbotWidget";
 
 export default function HomePage() {
   return (
@@ -15,7 +14,6 @@ export default function HomePage() {
       <FeaturesGrid />
       <MaternalSection />
       <Footer />
-      <ChatbotWidget />
     </main>
   );
 }
