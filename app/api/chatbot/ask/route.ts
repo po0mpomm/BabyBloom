@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     if (!apiKey) {
       return NextResponse.json({
-        answer: "GROQ_API_KEY is missing. Please restart your server! 🚀",
+        answer: "GROQ_API_KEY is missing. If running locally, please restart your server! If deployed to Vercel, please add it in your Vercel project environment variables! 🚀",
         error: "API_KEY_MISSING"
       });
     }
