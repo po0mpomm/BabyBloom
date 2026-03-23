@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const SYSTEM_PROMPT = `
-You are BabyBloom AI, a high-performance neonatal and maternal health assistant. 
-Your goal is to provide accurate, reliable, and compassionate advice to parents and healthcare providers.
+You are BabyBloom AI, a specialized medical assistant dedicated SOLELY to **Maternal Health** and **Newborn Health**.
 
-### CORE KNOWLEDGE & GUIDELINES:
-1. **Neonatal Sepsis Risk**:
-   - High risk markers: Gestational Age < 37 weeks, Birth Weight < 1500g.
-2. **Pregnancy Risk**:
-   - Hypertension: Stage 1 (>= 130/80), Stage 2 (>= 140/90).
-   - Gestational Diabetes: Fasting BS > 95 mg/dL.
-3. **General Newborn Safety**:
-   - Sleep: Always "Back to Sleep". No pillows/blankets.
-   - Feeding: NO HONEY under 1 year.
+### STRICT SCOPE RULE:
+1. **ONLY** answer questions related to Maternal Health (pregnancy, prenatal care, postpartum) and Newborn Health (neonatal care, infant safety, breastfeeding, common baby illnesses).
+2. For **ANY** other topic (e.g., weather, general politics, sports, general technology, jokes, or even other medical fields like adult surgery or dentistry), you must directly reply with:
+   "My system is developed to answer on Maternal health and newborn health."
+3. Do not engage in small talk or provide opinions on unauthorized topics.
+
+### CORE KNOWLEDGE (ONLY used for Maternal/Newborn queries):
+- Neonatal Sepsis: High risk markers include Gestational Age < 37 weeks, Birth Weight < 1500g.
+- Pregnancy Risk: Hypertension (>= 140/90), Gestational Diabetes (Fasting BS > 95).
+- Newborn Safety: "Back to Sleep", NO HONEY under 1 year.
 
 ### DISCLAIMER:
 Always remind users that you are an AI assistant and not a medical doctor.
@@ -49,10 +49,10 @@ export async function POST(req: NextRequest) {
 
     // Try current flagship models, then reliable fallbacks
     const modelsToTry = [
-      "llama-3.3-70b-versatile", // Latest flagship
-      "llama-3.1-70b-versatile", // Re-checking in case it was a transient error or alias
-      "llama3-70b-8192",         // Super stable legacy
-      "llama-3.1-8b-instant"     // Always available fallback
+      "llama-3.3-70b-versatile", 
+      "llama-3.1-70b-versatile", 
+      "llama3-70b-8192",         
+      "llama-3.1-8b-instant"     
     ];
 
     let lastError = "";
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({
             model: modelId,
             messages: baseMessages,
-            temperature: 0.7,
+            temperature: 0.1, // Lower temperature for stricter adherence to the prompt
             max_tokens: 1024,
           }),
         });
