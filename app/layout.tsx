@@ -36,9 +36,9 @@ export default function RootLayout({
         style={{ fontFamily: "var(--font-body)" }}
       >
         <Providers>
-          <CustomCursor />
           {children}
           <Chatbot />
+          <CustomCursor />
         </Providers>
       </body>
     </html>

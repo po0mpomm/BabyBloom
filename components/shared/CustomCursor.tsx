@@ -72,7 +72,7 @@ export default function CustomCursor() {
       {/* Outer ring */}
       <motion.div
         ref={dotRef}
-        className="fixed top-0 left-0 w-10 h-10 rounded-full border-2 pointer-events-none z-[9999] hidden md:block"
+        className="fixed top-0 left-0 w-10 h-10 rounded-full border-2 pointer-events-none z-[2147483647] hidden md:block"
         style={{
           x,
           y,
@@ -85,7 +85,7 @@ export default function CustomCursor() {
       />
       {/* Inner dot */}
       <motion.div
-        className="fixed top-0 left-0 w-1.5 h-1.5 rounded-full pointer-events-none z-[9999] hidden md:block"
+        className="fixed top-0 left-0 w-1.5 h-1.5 rounded-full pointer-events-none z-[2147483647] hidden md:block"
         style={{
           x: cursorX,
           y: cursorY,
