@@ -18,7 +18,7 @@ interface PredictResult {
   recommendations: string[];
 }
 
-type PredictorType = "none" | "sepsis" | "pregnancy";
+type PredictorType = "none" | "sepsis" | "pregnancy" | "child";
 
 const riskConfig = {
   Low: {
@@ -81,6 +81,54 @@ export default function MLPredictorPage() {
     bodyTemp: 98.6,
     heartRate: 75
   });
+
+  // Child Health Form State
+  const [childForm, setChildForm] = useState<{
+    age: number;
+    weight: number;
+    height: number;
+    gender: string;
+    healthIssues: string[];
+  }>({
+    age: 3,
+    weight: 12,
+    height: 90,
+    gender: "Male",
+    healthIssues: ["None"],
+  });
+
+  const handleIssueToggle = (issue: string) => {
+    setChildForm(prev => {
+      let newIssues = [...prev.healthIssues];
+      if (issue === "None") {
+        newIssues = ["None"];
+      } else {
+        newIssues = newIssues.filter(i => i !== "None"); // Remove 'None'
+        if (newIssues.includes(issue)) {
+          newIssues = newIssues.filter(i => i !== issue);
+          if (newIssues.length === 0) newIssues = ["None"];
+        } else {
+          newIssues.push(issue);
+        }
+      }
+      return { ...prev, healthIssues: newIssues };
+    });
+  };
+
+  const predictChild = async () => {
+    setLoading(true);
+    setResult(null);
+    try {
+      const res = await axios.post("/api/ml/predict", childForm);
+      setResult(res.data);
+    } catch {
+      // handle error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculatedBMI = (childForm.weight / Math.pow(childForm.height / 100, 2)).toFixed(1);
 
   const predictSepsis = async () => {
     setLoading(true);
@@ -165,7 +213,30 @@ export default function MLPredictorPage() {
 
         <div className="max-w-6xl mx-auto px-4 pb-20">
           {activePredictor === "none" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+              {/* Child Health Box */}
+              <motion.div
+                whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(194,24,91,0.12)" }}
+                className="p-8 rounded-3xl bg-white border border-pink-100 shadow-sm cursor-pointer group transition-all"
+                onClick={() => setActivePredictor("child")}
+              >
+                <div 
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"
+                  style={{ background: "var(--gradient-accent)" }}
+                >
+                  <Brain className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-[#1A0A0D] mb-3" style={{ fontFamily: "var(--font-display)" }}>
+                  Child Health Assessment
+                </h3>
+                <p className="text-[#8C5A6E] mb-6">
+                  General health risk prediction based on age, BMI, and previous medical history.
+                </p>
+                <div className="flex items-center text-rose-600 font-bold gap-2 group-hover:gap-3 transition-all">
+                  Open Predictor <ArrowRight className="w-5 h-5" />
+                </div>
+              </motion.div>
+
               {/* Neonatal Sepsis Box */}
               <motion.div
                 whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(194,24,91,0.12)" }}
@@ -437,6 +508,136 @@ export default function MLPredictorPage() {
                     style={{ background: "var(--gradient-accent)" }}
                   >
                     {loading ? "Analyzing Pregnancy Risk..." : "Predict Pregnancy Risk"}
+                  </motion.button>
+                </motion.div>
+              )}
+
+              {/* Child Health Form */}
+              {activePredictor === "child" && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="p-6 rounded-2xl bg-white border border-pink-100 shadow-sm h-fit"
+                >
+                  <h2 className="text-[#1A0A0D] font-bold text-xl mb-6 flex items-center gap-2" style={{ fontFamily: "var(--font-display)" }}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white" style={{ background: "var(--gradient-accent)" }}>
+                      <Brain className="w-4 h-4" />
+                    </div>
+                    Child Health Data
+                  </h2>
+                  <div className="space-y-6">
+                    {/* Age Slider */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="text-sm text-[#4A1E2E] font-medium">Age</label>
+                        <span className="text-rose-600 font-bold text-sm">{childForm.age} years</span>
+                      </div>
+                      <input
+                        type="range" min="0" max="18" value={childForm.age}
+                        onChange={(e) => setChildForm({...childForm, age: +e.target.value})}
+                        className="w-full h-2 rounded-full appearance-none accent-rose-500"
+                        style={{ background: `linear-gradient(to right, #F06292 ${(childForm.age / 18) * 100}%, rgba(240,98,146,0.2) ${(childForm.age / 18) * 100}%)` }}
+                      />
+                      <div className="flex justify-between text-[10px] text-[#8C5A6E] mt-1">
+                        <span>0</span><span>18 yrs</span>
+                      </div>
+                    </div>
+
+                    {/* Weight Slider */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="text-sm text-[#4A1E2E] font-medium">Weight</label>
+                        <span className="text-rose-600 font-bold text-sm">{childForm.weight} kg</span>
+                      </div>
+                      <input
+                        type="range" min="2" max="80" value={childForm.weight}
+                        onChange={(e) => setChildForm({...childForm, weight: +e.target.value})}
+                        className="w-full h-2 rounded-full appearance-none accent-rose-500"
+                        style={{ background: `linear-gradient(to right, #F06292 ${((childForm.weight - 2) / 78) * 100}%, rgba(240,98,146,0.2) ${((childForm.weight - 2) / 78) * 100}%)` }}
+                      />
+                      <div className="flex justify-between text-[10px] text-[#8C5A6E] mt-1">
+                        <span>2 kg</span><span>80 kg</span>
+                      </div>
+                    </div>
+
+                    {/* Height Slider */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="text-sm text-[#4A1E2E] font-medium">Height</label>
+                        <span className="text-rose-600 font-bold text-sm">{childForm.height} cm</span>
+                      </div>
+                      <input
+                        type="range" min="40" max="200" value={childForm.height}
+                        onChange={(e) => setChildForm({...childForm, height: +e.target.value})}
+                        className="w-full h-2 rounded-full appearance-none accent-rose-500"
+                        style={{ background: `linear-gradient(to right, #F06292 ${((childForm.height - 40) / 160) * 100}%, rgba(240,98,146,0.2) ${((childForm.height - 40) / 160) * 100}%)` }}
+                      />
+                      <div className="flex justify-between text-[10px] text-[#8C5A6E] mt-1">
+                        <span>40 cm</span><span>200 cm</span>
+                      </div>
+                    </div>
+
+                    {/* Gender Toggle */}
+                    <div>
+                      <label className="text-sm text-[#4A1E2E] font-medium mb-2 block">Gender</label>
+                      <div className="flex gap-2">
+                        {["Male", "Female"].map(g => (
+                          <button
+                            key={g}
+                            onClick={() => setChildForm({...childForm, gender: g})}
+                            className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all border ${
+                              childForm.gender === g
+                                ? "bg-rose-500 text-white shadow-md border-rose-600"
+                                : "bg-white text-[#8C5A6E] border-pink-200 hover:border-rose-400"
+                            }`}
+                          >
+                            {g}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Previous Health Issues */}
+                    <div>
+                      <label className="text-sm text-[#4A1E2E] font-medium mb-2 block">Previous Health Issues</label>
+                      <div className="flex flex-wrap gap-2">
+                        {HEALTH_ISSUES.map(issue => {
+                          const isSelected = childForm.healthIssues.includes(issue);
+                          return (
+                            <button
+                              key={issue}
+                              onClick={() => handleIssueToggle(issue)}
+                              className={`py-1.5 px-4 rounded-full text-xs font-medium transition-all border ${
+                                isSelected
+                                  ? "bg-rose-500 text-white border-rose-600 shadow-sm"
+                                  : "bg-white text-[#8C5A6E] border-pink-200 hover:border-rose-400"
+                              }`}
+                            >
+                              {issue}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* BMI Estimate */}
+                    <div className="p-4 rounded-xl bg-pink-50 border border-pink-100 flex items-center justify-between">
+                      <span className="text-[#8C5A6E] text-sm font-medium">BMI estimate:</span>
+                      <span className="text-rose-600 font-bold text-lg">{calculatedBMI}</span>
+                    </div>
+                  </div>
+
+                  <motion.button
+                    onClick={predictChild}
+                    disabled={loading}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full mt-6 py-4 rounded-xl text-white font-bold text-base shadow-lg flex items-center justify-center gap-2 disabled:opacity-60"
+                    style={{ background: "var(--gradient-accent)" }}
+                  >
+                    <Brain className="w-5 h-5 opacity-80" />
+                    {loading ? "Analyzing..." : "Analyze Risk"}
+                    <ArrowRight className="w-4 h-4 ml-1" />
                   </motion.button>
                 </motion.div>
               )}
