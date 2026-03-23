@@ -25,17 +25,17 @@ export async function POST(req: NextRequest) {
 
     if (!apiKey) {
       return NextResponse.json({
-        answer: "GEMINI_API_KEY is missing. Please **RESTART YOUR SERVER** (npm run dev) to load the new environment variables! 🚀",
+        answer: "GEMINI_API_KEY is missing. Please **RESTART YOUR SERVER** (npm run dev)! 🚀",
         error: "API_KEY_MISSING"
       });
     }
 
-    // Direct Fetch to the stable v1 endpoint (more robust than SDK v1beta)
-    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // Using the recommended v1beta endpoint and gemini-1.5-flash model
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const contents = [
       { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
-      { role: "model", parts: [{ text: "Understood. I am BabyBloom AI." }] },
+      { role: "model", parts: [{ text: "Understood. I am BabyBloom AI, your neonatal health assistant." }] },
     ];
 
     if (chat_history) {
@@ -58,22 +58,7 @@ export async function POST(req: NextRequest) {
     const data = await response.json();
 
     if (!response.ok) {
-      // If Flash fails, try Pro as a fallback on the stable v1 endpoint
-      const proUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`;
-      const proRes = await fetch(proUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents }),
-      });
-      
-      const proData = await proRes.json();
-      if (!proRes.ok) {
-        throw new Error(proData.error?.message || data.error?.message || "Gemini API rejected the key");
-      }
-      
-      return NextResponse.json({
-        answer: proData.candidates[0].content.parts[0].text
-      });
+      throw new Error(data.error?.message || "Gemini API Error");
     }
 
     return NextResponse.json({
@@ -81,9 +66,9 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error("Gemini Direct Error:", error.message);
+    console.error("Gemini Final Error:", error.message);
     return NextResponse.json({
-      answer: `Gemini Error: ${error.message}. Please ensure the "Generative Language API" is enabled for your API key in the Google Cloud Console or use a key from Google AI Studio. 🧠✨`,
+      answer: `Gemini Error: ${error.message}. Please ensure your API key from Google AI Studio is correct! 🧠✨`,
       error: error.message
     });
   }
