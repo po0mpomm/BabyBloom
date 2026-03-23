@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
-import { MessageCircle, Send, X, Minimize2, Sparkles, User, Bot, Loader2 } from "lucide-react";
+import { Send, X, Minimize2, Sparkles, User, Bot, Loader2 } from "lucide-react";
+import ChatbotModel from "./ChatbotModel";
 
 interface Message {
   role: "user" | "bot";
@@ -31,7 +31,7 @@ export default function Chatbot() {
     if (!input.trim() || loading) return;
 
     const userMsg: Message = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev: Message[]) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
 
@@ -42,7 +42,7 @@ export default function Chatbot() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: input,
-          chat_history: messages.map(m => ({
+          chat_history: messages.map((m: Message) => ({
             role: m.role === "user" ? "user" : "assistant",
             content: m.content
           }))
@@ -59,10 +59,10 @@ export default function Chatbot() {
         role: "bot", 
         content: data.answer || "I'm sorry, I couldn't process that. Please try again." 
       };
-      setMessages((prev) => [...prev, botMsg]);
+      setMessages((prev: Message[]) => [...prev, botMsg]);
     } catch (error) {
       console.error("Chatbot Error:", error);
-      setMessages((prev) => [...prev, { 
+      setMessages((prev: Message[]) => [...prev, { 
         role: "bot", 
         content: "I'm having a brief connection issue. Please try again in a few seconds! 🧠✨" 
       }]);
@@ -82,20 +82,16 @@ export default function Chatbot() {
             whileHover={{ scale: 1.05, y: -5 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsOpen(true)}
-            className="w-24 h-24 flex items-center justify-center relative cursor-pointer !pointer-events-auto group animate-float"
+            className="w-32 h-32 flex items-center justify-center relative cursor-pointer !pointer-events-auto group drop-shadow-2xl"
             title="Chat with Baby Blooms"
           >
-            <div className="relative w-full h-full drop-shadow-xl transition-all duration-300 group-hover:drop-shadow-2xl">
-              <Image
-                src="/baby_blooms_3d_bot.png"
-                alt="Baby Blooms AI"
-                fill
-                className="object-contain"
-                priority
-              />
+            {/* 3D Model Container - pure 3D model, no pink glows or backgrounds */}
+            <div className="relative w-full h-full">
+              <ChatbotModel />
             </div>
-            {/* Notification Badge */}
-            <div className="absolute top-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-sm" />
+            
+            {/* Small notification indicator */}
+            <div className="absolute top-2 right-2 w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-sm" />
           </motion.button>
         )}
       </AnimatePresence>
@@ -130,7 +126,7 @@ export default function Chatbot() {
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#FDF7F8]">
-              {messages.map((msg, idx) => (
+              {messages.map((msg: Message, idx: number) => (
                 <motion.div
                   key={idx}
                   initial={{ opacity: 0, x: msg.role === "user" ? 20 : -20 }}
