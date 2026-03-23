@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, X, Minimize2, Sparkles, User, Bot, Loader2 } from "lucide-react";
-import ChatbotModel from "./ChatbotModel";
+import { MessageCircle, Send, X, Minimize2, Sparkles, User, Bot, Loader2 } from "lucide-react";
 
 interface Message {
   role: "user" | "bot";
@@ -79,19 +78,23 @@ export default function Chatbot() {
             initial={{ scale: 0, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0, opacity: 0 }}
-            whileHover={{ scale: 1.05, y: -5 }}
+            whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsOpen(true)}
-            className="w-32 h-32 flex items-center justify-center relative cursor-pointer !pointer-events-auto group drop-shadow-2xl"
+            className="w-16 h-16 rounded-full flex items-center justify-center relative shadow-[0_8px_30px_rgb(0,0,0,0.12)] group transition-all duration-300 pointer-events-auto cursor-pointer border border-white/20"
+            style={{ background: "var(--gradient-accent)" }}
             title="Chat with Baby Blooms"
           >
-            {/* 3D Model Container - pure 3D model, no pink glows or backgrounds */}
-            <div className="relative w-full h-full">
-              <ChatbotModel />
+            {/* Soft pulsing ambient glow underneath */}
+            <div className="absolute inset-0 bg-rose-400 rounded-full blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-300" />
+            
+            {/* Icon */}
+            <div className="relative z-10 flex items-center justify-center">
+              <MessageCircle className="w-7 h-7 text-white" strokeWidth={2.5} />
             </div>
             
-            {/* Small notification indicator */}
-            <div className="absolute top-2 right-2 w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-sm" />
+            {/* Notification Badge */}
+            <div className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-[#10B981] rounded-full border-2 border-white shadow-sm z-20" />
           </motion.button>
         )}
       </AnimatePresence>
