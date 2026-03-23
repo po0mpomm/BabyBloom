@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import { MessageCircle, Send, X, Minimize2, Sparkles, User, Bot, Loader2 } from "lucide-react";
 
 interface Message {
@@ -71,21 +72,30 @@ export default function Chatbot() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999]">
+    <div className="fixed bottom-6 right-6 z-[2147483647] pointer-events-auto">
       <AnimatePresence>
         {!isOpen && (
           <motion.button
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
+            initial={{ scale: 0, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0, opacity: 0 }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.05, y: -5 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setIsOpen(true)}
-            className="w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-white relative group"
-            style={{ background: "var(--gradient-accent)" }}
+            className="w-24 h-24 flex items-center justify-center relative cursor-pointer !pointer-events-auto group animate-float"
+            title="Chat with Baby Blooms"
           >
-            <MessageCircle className="w-8 h-8" />
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-rose-400 rounded-full border-2 border-white animate-pulse" />
+            <div className="relative w-full h-full drop-shadow-xl transition-all duration-300 group-hover:drop-shadow-2xl">
+              <Image
+                src="/baby_blooms_3d_bot.png"
+                alt="Baby Blooms AI"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            {/* Notification Badge */}
+            <div className="absolute top-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-sm" />
           </motion.button>
         )}
       </AnimatePresence>
